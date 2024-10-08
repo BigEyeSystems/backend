@@ -12,6 +12,9 @@ from app.database import database
 from app.auth_bearer import JWTBearer
 from .schemas import TickerTracking
 
+import json
+from html.parser import HTMLParser
+
 
 load_dotenv()
 router = APIRouter()
@@ -65,8 +68,12 @@ async def get_ticker_tracking(token_data: Dict = Depends(JWTBearer())):
     return {"status": status.HTTP_200_OK, "records": records, "conditions": conditions}
 
 
+<<<<<<< HEAD
 @router.get("/get_ticker_tracking_history", tags=["notify"])
-async def get_ticker_tracking_history(tt_id: int = Query(), token_data: Dict = Depends(JWTBearer())):
+=======
+@router.get("/get_ticker_tracking_history", tags=["notify"], dependencies=[Depends(JWTBearer())])
+>>>>>>> main
+async def get_ticker_tracking_history(tt_id: int = Query()):
     ticker_tracking_history = await database.fetch(
         f"""
         SELECT *
@@ -77,7 +84,23 @@ async def get_ticker_tracking_history(tt_id: int = Query(), token_data: Dict = D
         """, tt_id
     )
 
-    return {"status": status.HTTP_200_OK, "ticker_tracking_history": ticker_tracking_history}
+    return_data = []
+
+    for item in ticker_tracking_history:
+        temp_value = {}
+        params_data = json.loads(item["params"])
+        params_data.pop("type")
+        params_data.pop("telegram_id")
+
+        temp_value["type"] = item["type"]
+        temp_value["date"] = item["date"]
+        temp_value["status"] = item["status"]
+        temp_value["active_name"] = item["active_name"]
+        temp_value["params"] = params_data
+
+        return_data.append(temp_value)
+
+    return {"status": status.HTTP_200_OK, "ticker_tracking_history": return_data}
 
 
 @router.patch("/update_ticker_tracking", tags=["notify"], dependencies=[Depends(JWTBearer())])
