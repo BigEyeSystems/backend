@@ -41,6 +41,8 @@ def format_number(number):
 
 
 def volume_data_db_push(record):
+    database.connect()
+
     try:
         stock_id = database.execute_with_return(
             """
@@ -98,6 +100,8 @@ def volume_data_db_push(record):
     except Exception as e:
         logging.error(f"Error arose while trying to insert volume data into DB, error message:{e}")
         return "Error with DB"
+
+    database.disconnect()
 
 
 def get_volume_data():
