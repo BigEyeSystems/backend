@@ -60,6 +60,7 @@ def volume_data_db_push(record):
         )
     except Exception as e:
         logging.error(f"Error arose while trying to insert funding names into DB, error message:{e}")
+        database.disconnect()
         return "Error with DB"
 
     stock_id = stock_id[0][0]
