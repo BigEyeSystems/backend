@@ -99,7 +99,6 @@ def volume_data_db_push(record):
         )
     except Exception as e:
         logging.error(f"Error arose while trying to insert volume data into DB, error message:{e}")
-        return "Error with DB"
 
     database.disconnect()
 
