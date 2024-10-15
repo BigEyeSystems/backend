@@ -94,6 +94,7 @@ def get_data():
 
     return result_list
 
+
 def run_with_timeout(func, timeout, retries=3):
     attempt = 0
     while attempt < retries:
