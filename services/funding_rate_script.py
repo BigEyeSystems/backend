@@ -186,7 +186,7 @@ def get_volume_data():
 
         try:
             with multiprocessing.Pool(processes=8) as pool:
-                pool.starmap(volume_data_db_push, [record for record in updated_volume_data])
+                pool.map(volume_data_db_push, updated_volume_data)
         except Exception as e:
             logger.error(f"An error occurred during multiprocessing: {e}")
 
