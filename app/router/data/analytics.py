@@ -140,6 +140,7 @@ async def ticker_information(ticker: str = Query(max_length=50)):
 
 @router.post("/volume_24hr")
 async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, default="generate"), token_data: Dict = Depends(JWTBearer())):
+    print(f"In volume_24hr function, json params is: {params}")
     ticker = await database.fetchrow(
         """
         SELECT *
@@ -212,7 +213,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             writer = csv.writer(file)
             writer.writerow(["index", "date", "daily_volume", "volume_change_percent"])
 
-            for data in stock_data[-1:0:-1]:
+            for data in stock_data[-1:1:-1]:
                 date = data['close_time'].strftime("%d-%m-%Y | %H:%M")
                 change_percent = None
 
