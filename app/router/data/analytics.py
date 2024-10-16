@@ -218,7 +218,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
 
                 if last_value:
                     change_percent = (last_value - data['volume']) / data['volume'] * 100
-                    last_value = data['volume']
+
+                last_value = data['volume']
 
                 writer.writerow([row_index, date, data['quote_volume'], change_percent])
                 row_index += 1
