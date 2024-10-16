@@ -200,7 +200,7 @@ def main_runner():
             else:
                 notify_list[ticker_name]['telegram_id'].append(user_telegram_id)
 
-        logger.info("Collected telegram id of users")
+        logger.info(f"Collected telegram id of users, value of notify list: {notify_list}")
 
 
         for index, record in enumerate(volume_data):
@@ -257,7 +257,7 @@ def main_runner():
             try:
                 ticker_tracking_notification(notify_list)
             except Exception as e:
-                print("Exception occurred in ticker tracking notification, error message: ", e)
+                logger.error("Exception occurred in ticker tracking notification, error message: ", e)
     except Exception as e:
         logger.error(f"Error in main_runner: {e}")
     finally:
