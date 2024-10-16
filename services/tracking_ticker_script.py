@@ -114,9 +114,10 @@ def main_runner():
 
         tt_users = database.execute_with_return(
             """
-                SELECT user_id, condition, id
-                FROM users.user_notification
-                WHERE notification_type = 'ticker_tracking' AND active = true;
+                SELECT un.user_id, un.condition, un.id
+                FROM users.user_notification un
+                JOIN users.notification_settings ns ON un.user_id = ns.user_id
+                WHERE un.notification_type = 'ticker_tracking' AND un.active AND ns.tracking_ticker;
             """
         )
 
@@ -125,8 +126,6 @@ def main_runner():
         to_notify_users = []
 
         for tt_user in tt_users:
-            check_last_notification = None
-
             notification_history = database.execute_with_return(
                 """
                     SELECT date, telegram_id
@@ -144,7 +143,7 @@ def main_runner():
                         SELECT telegram_id
                         FROM users.notification
                         WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER));
-                    """, (notification_history[0], tt_user[1]))
+                    """, (notification_history[0][0], tt_user[1]))
             
             else:
                 logger.info(f"User did not get any notification! value: {notification_history}")
