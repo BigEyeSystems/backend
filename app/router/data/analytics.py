@@ -173,7 +173,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             WHERE
                 rn % $2 = 0  
             ORDER BY
-                close_time
+                close_time DESC
             LIMIT
                 $3;
             """, ticker.get('stock_id'), time_gap, limit_number
@@ -221,6 +221,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
                     last_value = data['volume']
 
                 writer.writerow([row_index, date, data['quote_volume'], change_percent])
+                row_index += 1
 
         file_id = await database.fetch(
             """
