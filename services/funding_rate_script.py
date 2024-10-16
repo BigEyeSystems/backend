@@ -75,6 +75,8 @@ def volume_data_db_push(record):
             """, (stock_id,)
         )
 
+        print(records_count[0][0])
+
         if records_count[0][0] >= 44640:
             database.execute("""
                                 DELETE FROM data_history.volume_data
@@ -85,6 +87,8 @@ def volume_data_db_push(record):
                                     LIMIT 1440
                                 );
                 """, (stock_id,))
+
+        print("Before the insertion")
 
         database.execute(
             """
