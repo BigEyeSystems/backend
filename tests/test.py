@@ -89,56 +89,56 @@ redis_database = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
 #     else:
 #         print("Data from reddis db: ", data.get('values'))
 
-from services.database import database, redis_database
-
-database.connect()
-
-tt_users = database.execute_with_return(
-            """
-                SELECT un.user_id, un.condition, un.id
-                FROM users.user_notification un
-                JOIN users.notification_settings ns ON un.user_id = ns.user_id
-                WHERE un.notification_type = 'ticker_tracking' AND un.active AND ns.tracking_ticker;
-            """
-        )
-
-to_notify_users = []
-
-for tt_user in tt_users:
-      notification_history = database.execute_with_return(
-      """
-              SELECT date, telegram_id
-              FROM users.notification
-              WHERE type = %s
-              ORDER BY date DESC
-              LIMIT 1;
-      """, (tt_user[2],))
-
-      if notification_history:
-            print(f"Checking the user {notification_history[0][1]} last notification! value: {notification_history[0][0].strftime("%B %d, %Y, %I:%M:%S %p")}")
-            print(f"Time until next notification to add: {tt_user[1]}")
-
-            check_last_notification = database.execute_with_return(
-                  """
-                      SELECT telegram_id
-                      FROM users.notification
-                      WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER));
-                  """, (notification_history[0][0], tt_user[1]))
-
-      else:
-            print(f"User did not get any notification! value: {notification_history}")
-
-            check_last_notification = database.execute_with_return(
-                  """
-                      SELECT telegram_id 
-                      FROM users."user"
-                      WHERE user_id = %s;
-                  """, (tt_user[0],)
-            )
-
-      if check_last_notification:
-            print(f"{check_last_notification[0]} added to list of notification!")
-            to_notify_users.append(check_last_notification[0] + tt_user)
-
-database.disconnect()
+# from services.database import database, redis_database
+#
+# database.connect()
+#
+# tt_users = database.execute_with_return(
+#             """
+#                 SELECT un.user_id, un.condition, un.id
+#                 FROM users.user_notification un
+#                 JOIN users.notification_settings ns ON un.user_id = ns.user_id
+#                 WHERE un.notification_type = 'ticker_tracking' AND un.active AND ns.tracking_ticker;
+#             """
+#         )
+#
+# to_notify_users = []
+#
+# for tt_user in tt_users:
+#       notification_history = database.execute_with_return(
+#       """
+#               SELECT date, telegram_id
+#               FROM users.notification
+#               WHERE type = %s
+#               ORDER BY date DESC
+#               LIMIT 1;
+#       """, (tt_user[2],))
+#
+#       if notification_history:
+#             print(f"Checking the user {notification_history[0][1]} last notification! value: {notification_history[0][0].strftime("%B %d, %Y, %I:%M:%S %p")}")
+#             print(f"Time until next notification to add: {tt_user[1]}")
+#
+#             check_last_notification = database.execute_with_return(
+#                   """
+#                       SELECT telegram_id
+#                       FROM users.notification
+#                       WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER));
+#                   """, (notification_history[0][0], tt_user[1]))
+#
+#       else:
+#             print(f"User did not get any notification! value: {notification_history}")
+#
+#             check_last_notification = database.execute_with_return(
+#                   """
+#                       SELECT telegram_id
+#                       FROM users."user"
+#                       WHERE user_id = %s;
+#                   """, (tt_user[0],)
+#             )
+#
+#       if check_last_notification:
+#             print(f"{check_last_notification[0]} added to list of notification!")
+#             to_notify_users.append(check_last_notification[0] + tt_user)
+#
+# database.disconnect()
 
