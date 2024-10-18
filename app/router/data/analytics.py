@@ -218,7 +218,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
                 change_percent = None
 
                 if last_value:
-                    change_percent = (last_value - data['volume']) / data['volume'] * 100
+                    change_percent = round((last_value - data['volume']) / data['volume'] * 100, 1)
 
                 last_value = data['volume']
 
