@@ -222,7 +222,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
 
                 last_value = data['volume']
 
-                writer.writerow([row_index, date, data['quote_volume'], change_percent])
+                writer.writerow([row_index, date, format_number(data['quote_volume']), change_percent])
                 row_index += 1
 
         file_id = await database.fetch(
