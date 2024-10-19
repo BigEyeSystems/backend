@@ -137,7 +137,7 @@ def main_runner():
 
 
 
-            if notification_history and notification_history[0][1] == :
+            if notification_history:
                 logger.info(f"Checking the user last notification! value: {notification_history}")
 
                 check_last_notification = database.execute_with_return(
