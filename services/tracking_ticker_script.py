@@ -134,16 +134,18 @@ def main_runner():
                     ORDER BY date DESC
                     LIMIT 1;
                 """, (tt_user[2],))
-            
-            if notification_history:
+
+
+
+            if notification_history and notification_history[0][1] == :
                 logger.info(f"Checking the user last notification! value: {notification_history}")
 
                 check_last_notification = database.execute_with_return(
                     """
                         SELECT telegram_id
                         FROM users.notification
-                        WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER));
-                    """, (notification_history[0][0], tt_user[1]))
+                        WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER)) AND telegram_id = %s;
+                    """, (notification_history[0][0], tt_user[1], notification_history[0][1]))
             
             else:
                 logger.info(f"User did not get any notification! value: {notification_history}")
@@ -180,17 +182,6 @@ def main_runner():
         for tt_user in tt_users:
             time_interval, ticker_name = tt_user[2].split(":")
             user_telegram_id = tt_user[0]
-
-            if not tt_user[0]:
-                telegram_id = database.execute_with_return(
-                    """
-                        SELECT telegram_id
-                        FROM users.user
-                        WHERE user_id = %s;
-                    """, (tt_user[1],)
-                )
-
-                user_telegram_id = telegram_id[0][0]
 
             if ticker_name not in notify_list.keys():
                 notify_list[ticker_name] = {
@@ -255,6 +246,7 @@ def main_runner():
                 })
         if notify_list:
             try:
+                logger.info(f"Before notification function, the value of the notify list is: {notify_list}")
                 ticker_tracking_notification(notify_list)
             except Exception as e:
                 logger.error("Exception occurred in ticker tracking notification, error message: ", e)
