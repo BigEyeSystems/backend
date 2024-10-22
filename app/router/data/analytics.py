@@ -1,4 +1,5 @@
 import csv
+import pika
 import os
 from datetime import datetime
 from typing import Dict
@@ -188,7 +189,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             'volume_data': []
         }
 
-        for data in stock_data:
+        for data in stock_data[-1:1:-1]:
             return_value['time_interval'].append(data['close_time'])
             return_value['volume_data'].append(data['volume'])
 
@@ -232,6 +233,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             RETURNING file_id;
             """, user_id, current_date, "24hr_volume", csv_file_path
         )
+
+
 
         return {"Status": "ok", "file_id": file_id}
 
