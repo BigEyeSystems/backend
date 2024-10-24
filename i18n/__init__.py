@@ -1,10 +1,7 @@
 class I18N:
     _STRINGS = {
         'bot.default_text': {
-            'ru': """""",
-            'kk': """""",
-            'en': """
-    🎉 Добро пожаловать в Smart Analytics!
+            'ru':     🎉 Добро пожаловать в Smart Analytics!
 
 Smart Analytics — это ваш персональный помощник в мире криптовалют и фондового рынка. Получайте актуальные данные, анализируйте рынок и принимайте взвешенные решения.
 
@@ -15,7 +12,20 @@ Smart Analytics — это ваш персональный помощник в �
 💼 Подписка: Откройте доступ к расширенным функциям и получайте максимум полезной информации.
 
 Удачи в ваших инвестициях и успешных сделок! 🚀
-"""
+""",
+            'kk': """""",
+            'en': """ 🎉 Welcome to Smart Analytics!
+
+Smart Analytics is your personal assistant in the world of cryptocurrencies and the stock market. Get up-to-date data, analyze the market, and make informed decisions.
+
+🔍 Explore the market: Track price changes, trading activity, and asset growth in real time.
+
+📈 Analyze data: Use exclusive analytical tools for a deep understanding of market trends.
+
+💼 Subscription: Unlock access to advanced features and get the most valuable information.
+
+Good luck with your investments and successful deals! 🚀 """
+
         },
         'bot.error_message': {
             'ru': "",
