@@ -114,29 +114,29 @@ def main_runner():
 
         tt_users = database.execute_with_return(
             """
-                SELECT user_id, condition, id
-                FROM users.user_notification
-                WHERE notification_type = 'ticker_tracking' AND active = true;
+                SELECT un.user_id, un.condition, un.id
+                FROM users.user_notification un
+                JOIN users.notification_settings ns ON un.user_id = ns.user_id
+                WHERE un.notification_type = 'ticker_tracking' AND un.active AND ns.tracking_ticker;
             """
         )
 
         logger.info(f"First step, collecting all users ticker tracking {tt_users}")
 
-
         to_notify_users = []
 
         for tt_user in tt_users:
-            check_last_notification = None
-
             notification_history = database.execute_with_return(
                 """
-                    SELECT date
+                    SELECT date, telegram_id
                     FROM users.notification
                     WHERE type = %s
-                    ORDER BY users.notification.date DESC
+                    ORDER BY date DESC
                     LIMIT 1;
                 """, (tt_user[2],))
-            
+
+
+
             if notification_history:
                 logger.info(f"Checking the user last notification! value: {notification_history}")
 
@@ -144,8 +144,8 @@ def main_runner():
                     """
                         SELECT telegram_id
                         FROM users.notification
-                        WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER));
-                    """, (notification_history[0], tt_user[1]))
+                        WHERE (%s <= NOW() - make_interval(mins := split_part(%s, '_', 1)::INTEGER)) AND telegram_id = %s;
+                    """, (notification_history[0][0], tt_user[1], notification_history[0][1]))
             
             else:
                 logger.info(f"User did not get any notification! value: {notification_history}")
@@ -183,17 +183,6 @@ def main_runner():
             time_interval, ticker_name = tt_user[2].split(":")
             user_telegram_id = tt_user[0]
 
-            if not tt_user[0]:
-                telegram_id = database.execute_with_return(
-                    """
-                        SELECT telegram_id
-                        FROM users.user
-                        WHERE user_id = %s;
-                    """, (tt_user[1],)
-                )
-
-                user_telegram_id = telegram_id[0][0]
-
             if ticker_name not in notify_list.keys():
                 notify_list[ticker_name] = {
                     'type': tt_user[3],
@@ -202,7 +191,7 @@ def main_runner():
             else:
                 notify_list[ticker_name]['telegram_id'].append(user_telegram_id)
 
-        logger.info("Collected telegram id of users")
+        logger.info(f"Collected telegram id of users, value of notify list: {notify_list}")
 
 
         for index, record in enumerate(volume_data):
@@ -257,9 +246,10 @@ def main_runner():
                 })
         if notify_list:
             try:
+                logger.info(f"Before notification function, the value of the notify list is: {notify_list}")
                 ticker_tracking_notification(notify_list)
             except Exception as e:
-                print("Exception occurred in ticker tracking notification, error message: ", e)
+                logger.error("Exception occurred in ticker tracking notification, error message: ", e)
     except Exception as e:
         logger.error(f"Error in main_runner: {e}")
     finally:

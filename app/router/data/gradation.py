@@ -26,6 +26,7 @@ def calculate_percentage_change(value_1, value_2):
 
 async def file_generation(volume_data, interval, growth_type, csv_file_path):
     for record in volume_data:
+        print(f"The value from record: {record}")
         stock_id = await database.fetchrow(
             """
             SELECT stock_id
@@ -73,11 +74,11 @@ async def file_generation(volume_data, interval, growth_type, csv_file_path):
 
 
 @router.get("/gradation_growth", tags=["data"])
-async def get_gradation(background_tasks: BackgroundTasks, interval: int = Query(30), growth_type: str = Query("Volume", max_length=50), token_data: Dict = Depends(JWTBearer())):
+async def get_gradation(background_tasks: BackgroundTasks, interval: int = Query(30), growth_type: str = Query("Volume", max_length=50)):
     volume_response = requests.get('https://fapi.binance.com/fapi/v1/ticker/24hr')
     if volume_response.status_code == 200:
         volume_data = volume_response.json()
-        user_id = token_data.get("user_id")
+        user_id = 1 #token_data.get("user_id")
         current_date = datetime.now().date()
         current_time = datetime.now().time().replace(microsecond=0)
 

@@ -16,3 +16,5 @@ services/logs\\funding_rate.log
 
 node_modules
 dataframes
+dev_backup.sql
+

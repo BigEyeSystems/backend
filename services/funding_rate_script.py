@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 from decimal import Decimal
 
 import requests
@@ -37,6 +38,74 @@ def format_number(number):
     formatted_integer = '{:,}'.format(int(integer_part))
     formatted_number = f"{formatted_integer}.{fractional_part}"
     return formatted_number
+
+
+def volume_data_db_push(record):
+    database.connect()
+
+    try:
+        stock_id = database.execute_with_return(
+            """
+                WITH ins AS (
+                    INSERT INTO data_history.funding (symbol, company_name)
+                    VALUES (%s, %s)
+                    ON CONFLICT (symbol) DO NOTHING
+                    RETURNING stock_id
+                )
+                SELECT stock_id FROM ins
+                UNION ALL
+                SELECT stock_id FROM data_history.funding
+                WHERE symbol = %s AND NOT EXISTS (SELECT 1 FROM ins)
+            """, (record["symbol"], "crypto", record["symbol"])
+        )
+    except Exception as e:
+        logging.error(f"Error arose while trying to insert funding names into DB, error message:{e}")
+        database.disconnect()
+        return "Error with DB"
+
+    stock_id = stock_id[0][0]
+
+    open_time = datetime.fromtimestamp(record["openTime"] / 1000.0)
+    close_time = datetime.fromtimestamp(record["closeTime"] / 1000.0)
+
+    try:
+        records_count = database.execute_with_return(
+            """
+                SELECT COUNT(*) FROM data_history.volume_data WHERE stock_id = %s;
+            """, (stock_id,)
+        )
+
+        print(records_count[0][0])
+
+        if records_count[0][0] >= 44640:
+            database.execute("""
+                                DELETE FROM data_history.volume_data
+                                WHERE stock_id = (
+                                    SELECT stock_id FROM data_history.volume_data
+                                    WHERE stock_id = %s
+                                    ORDER BY close_time
+                                    LIMIT 1440
+                                );
+                """, (stock_id,))
+
+        print("Before the insertion")
+
+        database.execute(
+            """
+                INSERT INTO data_history.volume_data (stock_id, price_change, price_change_percent, 
+                weighted_avg_price, last_price, last_qty, open_price, high_price, volume, quote_volume, 
+                open_time, close_time, first_id, last_id, count)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (stock_id, float(record["priceChange"]), float(record["priceChangePercent"]),
+                  float(record["weightedAvgPrice"]), float(record["lastPrice"]), float(record["lastQty"]),
+                  float(record["openPrice"]), float(record["highPrice"]), float(record["volume"]),
+                  float(record["quoteVolume"]), open_time, close_time, record["firstId"], record["lastId"],
+                  record["count"])
+        )
+    except Exception as e:
+        logging.error(f"Error arose while trying to insert volume data into DB, error message:{e}")
+
+    database.disconnect()
 
 
 def get_volume_data():
@@ -117,68 +186,13 @@ def get_volume_data():
         except Exception as e:
             logging.error(f"Error arose while trying to insert top tickets by volume into Reddis, error message:{e}")
 
-        for record in updated_volume_data:
-            try:
-                stock_id = database.execute_with_return(
-                    """
-                        WITH ins AS (
-                            INSERT INTO data_history.funding (symbol, company_name)
-                            VALUES (%s, %s)
-                            ON CONFLICT (symbol) DO NOTHING
-                            RETURNING stock_id
-                        )
-                        SELECT stock_id FROM ins
-                        UNION ALL
-                        SELECT stock_id FROM data_history.funding
-                        WHERE symbol = %s AND NOT EXISTS (SELECT 1 FROM ins)
-                    """, (record["symbol"], "crypto", record["symbol"])
-                )
-            except Exception as e:
-                logging.error(f"Error arose while trying to insert funding names into DB, error message:{e}")
-                return "Error with DB"
-
-            stock_id = stock_id[0][0]
-
-            open_time = datetime.fromtimestamp(record["openTime"] / 1000.0)
-            close_time = datetime.fromtimestamp(record["closeTime"] / 1000.0)
-
-            try:
-                records_count = database.execute_with_return(
-                    """
-                        SELECT COUNT(*) FROM data_history.volume_data WHERE stock_id = %s;
-                    """, (stock_id,)
-                )
-
-                if records_count[0][0] >= 44640:
-                    database.execute("""
-                                        DELETE FROM data_history.volume_data
-                                        WHERE stock_id = (
-                                            SELECT stock_id FROM data_history.volume_data
-                                            WHERE stock_id = %s
-                                            ORDER BY close_time DESC
-                                            LIMIT 1440
-                                        );
-                        """, (stock_id,))
-
-                    print(f"Deleted the oldest record with column value '{stock_id}'")
-
-                database.execute(
-                    """
-                        INSERT INTO data_history.volume_data (stock_id, price_change, price_change_percent, 
-                        weighted_avg_price, last_price, last_qty, open_price, high_price, volume, quote_volume, 
-                        open_time, close_time, first_id, last_id, count)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """, (stock_id, float(record["priceChange"]), float(record["priceChangePercent"]),
-                          float(record["weightedAvgPrice"]), float(record["lastPrice"]), float(record["lastQty"]),
-                          float(record["openPrice"]), float(record["highPrice"]), float(record["volume"]),
-                          float(record["quoteVolume"]), open_time, close_time, record["firstId"], record["lastId"],
-                          record["count"])
-                )
-            except Exception as e:
-                logging.error(f"Error arose while trying to insert volume data into DB, error message:{e}")
-                return "Error with DB"
-
         database.disconnect()
+
+        try:
+            with multiprocessing.Pool(processes=8) as pool:
+                pool.map(volume_data_db_push, volume_data)
+        except Exception as e:
+            logger.error(f"An error occurred during multiprocessing: {e}")
 
 
 def get_symbols():
@@ -362,7 +376,7 @@ def get_funding_data():
         database.disconnect()
 
 
-schedule.every(60).seconds.do(get_funding_data)
+# schedule.every(60).seconds.do(get_funding_data)
 schedule.every(60).seconds.do(get_volume_data)
 
 while True:

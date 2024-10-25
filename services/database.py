@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 import redis
 from dotenv import load_dotenv
 
@@ -25,6 +27,7 @@ class Database:
 
     def connect(self):
         self.conn = psycopg2.connect(dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST)
+        # self.conn = psycopg2.connect(os.getenv('DATABASE_URL'))
         self.cursor = self.conn.cursor()
 
     def disconnect(self):
