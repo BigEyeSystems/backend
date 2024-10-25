@@ -150,9 +150,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
 
     if not ticker:
         return {"status": status.HTTP_404_NOT_FOUND, "message": "No such ticker!"}
-
-    total_minutes = params.time_value * 1440  
-    time_gap = total_minutes // 24  
+ 
+    time_gap = params.time_value * 60  
 
     try:
         stock_data = await database.fetch(
@@ -197,7 +196,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
                 "last_update": datetime.now().date(), "difference_percent":difference_percent}
 
     if action == "send":
-        user_id = 1#token_data.get("user_id")
+        user_id = token_data.get("user_id")
         current_date = datetime.now().date()
         current_time = datetime.now().time().replace(microsecond=0)
 
@@ -222,7 +221,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
 
                 writer.writerow([row_index, date, data['quote_volume'], change_percent])
 
-        telegram_id = 1#token_data["telegram_id"]
+        telegram_id = token_data["telegram_id"]
 
         with open(csv_file_path, 'rb') as file:
             await bot.send_document(chat_id=telegram_id, document=file, filename="24hr_data.csv")
