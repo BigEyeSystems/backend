@@ -1,4 +1,5 @@
 import csv
+import pika
 import os
 from datetime import datetime
 from typing import Dict
@@ -140,6 +141,7 @@ async def ticker_information(ticker: str = Query(max_length=50)):
 
 @router.post("/volume_24hr")
 async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, default="generate"), token_data: Dict = Depends(JWTBearer())):
+    print(f"In volume_24hr function, json params is: {params}")
     ticker = await database.fetchrow(
         """
         SELECT *
@@ -173,7 +175,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             WHERE
                 rn % $2 = 0  
             ORDER BY
-                close_time
+                close_time DESC
             LIMIT
                 $3;
             """, ticker.get('stock_id'), time_gap, limit_number
@@ -187,7 +189,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             'volume_data': []
         }
 
-        for data in stock_data:
+        for data in stock_data[-1:1:-1]:
             return_value['time_interval'].append(data['close_time'])
             return_value['volume_data'].append(data['volume'])
 
@@ -212,21 +214,28 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             writer = csv.writer(file)
             writer.writerow(["index", "date", "daily_volume", "volume_change_percent"])
 
-            for data in stock_data[-1:0:-1]:
+            for data in stock_data[-1:1:-1]:
                 date = data['close_time'].strftime("%d-%m-%Y | %H:%M")
                 change_percent = None
 
                 if last_value:
-                    change_percent = (last_value - data['volume']) / data['volume'] * 100
-                    last_value = data['volume']
+                    change_percent = round((last_value - data['volume']) / data['volume'] * 100, 1)
 
-                writer.writerow([row_index, date, data['quote_volume'], change_percent])
+                last_value = data['volume']
 
-        telegram_id = token_data["telegram_id"]
+                writer.writerow([row_index, date, format_number(data['quote_volume']), change_percent])
+                row_index += 1
 
-        with open(csv_file_path, 'rb') as file:
-            await bot.send_document(chat_id=telegram_id, document=file, filename="24hr_data.csv")
+        file_id = await database.fetch(
+            """
+            INSERT INTO data_history.volume_data_history (user_id, date, type, directory)
+            VALUES ($1, $2, $3, $4)
+            RETURNING file_id;
+            """, user_id, current_date, "24hr_volume", csv_file_path
+        )
 
-        return {"Status": "ok"}
+
+
+        return {"Status": "ok", "file_id": file_id}
 
     return {}
