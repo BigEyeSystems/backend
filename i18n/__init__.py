@@ -55,6 +55,38 @@ Good luck with your investments and successful deals! 🚀 """
             'kk': "",
             'en': "Please wait until our admin will allow you to check our product!",
         },
+        "bot.impulse_positive": {
+            "ru": "Торговая пара {active_name} дала импульс цены в {percent}% {time_text} 🟢📈",
+            "en": "The trading pair {active_name} showed a price impulse of {percent}% {time_text} 🟢📈",
+        },
+        'bot.trading_pair_header': {
+        'ru': "🔔Торговая пара: {ticker_name}🔔\n",
+        'en': "🔔Trading Pair: {ticker_name}🔔\n",
+        },
+        'bot.price_up': {
+            'ru': "– Текущая цена: {current_price}$ ({price_change}% за 15 мин.)🟢\n",
+            'en': "– Current Price: {current_price}$ ({price_change}% in last 15 mins)🟢\n",
+        },
+        'bot.price_down': {
+            'ru': "– Текущая цена: {current_price}$ ({price_change}% за 15 мин.)🔴\n",
+            'en': "– Current Price: {current_price}$ ({price_change}% in last 15 mins)🔴\n",
+        },
+        'bot.volume_up': {
+            'ru': "– Текущий объём торгов: {current_volume}$ ({volume_change}% за 15 мин.)🟢\n",
+            'en': "– Current Trading Volume: {current_volume}$ ({volume_change}% in last 15 mins)🟢\n",
+        },
+        'bot.volume_down': {
+            'ru': "– Текущий объём торгов: {current_volume}$ ({volume_change}% за 15 мин.)🔴\n",
+            'en': "– Current Trading Volume: {current_volume}$ ({volume_change}% in last 15 mins)🔴\n",
+        },
+        'bot.top_place': {
+            'ru': "– Актив входит в ТОП {top_place} по суточной процентности🔝\n",
+            'en': "– Asset ranks in the TOP {top_place} by daily percentage🔝\n",
+        },
+        'bot.funding_rate': {
+            'ru': " – Ставка финансирования: {current_funding_rate}% | 15 мин. назад: {funding_rate_change}%",
+            'en': " – Funding Rate: {current_funding_rate}% | 15 mins ago: {funding_rate_change}%",
+        },
     }
 
     def get_string(self, key, lang = 'en') -> str:

@@ -6,6 +6,8 @@ import pickle
 from dotenv import load_dotenv
 
 from database import database, redis_database
+from i18n import I18N
+i18n = I18N()
 
 
 load_dotenv()
@@ -101,12 +103,12 @@ def last_impulse_notification():
                 else:
                     time_text = "(за последние 60 мин)"
 
+
                 if percent > 0:
-                    text_for_notification = "\n".join(["🔔❗️Обратите внимание❗️🔔",
-                                            f"Торговая пара {active_name} дала импульс цены в {percent}% {time_text} 🟢📈"])
+                    text_for_notification = i18n.get_string("bot.impulse_positive", 'en').format(active_name=active_name, percent=percent, time_text=time_text)
                 else:
-                    text_for_notification = "\n".join(["🔔❗️Обратите внимание❗️🔔",
-                                            f"Торговая пара {active_name} дала импульс цены в {percent}% {time_text} 🔴📉"])
+                    text_for_notification = i18n.get_string("bot.impulse_negative", 'en').format(active_name=active_name, percent=percent, time_text=time_text)
+
 
                 payload = {
                     "chat_id": telegram_id,
@@ -156,21 +158,21 @@ def ticker_tracking_notification(notify_list: dict):
     for ticker_name, record in notify_list.items():
         telegram_ids = record.get("telegram_id")
 
-        telegram_text = f"🔔Торговая пара: {ticker_name}🔔\n"
+        telegram_text = i18n.get_string("bot.trading_pair_header", 'en').format(ticker_name=ticker_name)
 
         if record.get('price_change', 0) > 0:
-            telegram_text += f"– Текущая цена: {record.get('current_price')}$ ({record.get('price_change')}% за 15 мин.)🟢\n"
+            telegram_text += i18n.get_string("bot.price_up", 'en').format(current_price=record.get('current_price'), price_change=record.get('price_change'))
         else:
-            telegram_text += f"– Текущая цена: {record.get('current_price')}$ ({record.get('price_change')}% за 15 мин.)🔴\n"
+            telegram_text += i18n.get_string("bot.price_down", 'en').format(current_price=record.get('current_price'), price_change=record.get('price_change'))
 
         if record.get('volume_change', 0) > 0:
-            telegram_text += f"– Текущий объём торгов: {record.get('current_volume')}$ ({record.get('volume_change')}% за 15 мин.)🟢\n"
+            telegram_text += i18n.get_string("bot.volume_up", 'en').format(current_volume=record.get('current_volume'), volume_change=record.get('volume_change'))
         else:
-            telegram_text += f"– Текущий объём торгов: {record.get('current_volume')}$ ({record.get('volume_change')}% за 15 мин.)🔴\n"
+            telegram_text += i18n.get_string("bot.volume_down", 'en').format(current_volume=record.get('current_volume'), volume_change=record.get('volume_change'))
 
-        telegram_text += f"– Актив входит в ТОП {record.get('top_place')} по суточной процентности🔝\n"
+        telegram_text += i18n.get_string("bot.top_place", 'en').format(top_place=record.get('top_place'))
+        telegram_text += i18n.get_string("bot.funding_rate", 'en').format(current_funding_rate=record.get('current_funding_rate'), funding_rate_change=record.get('funding_rate_change'))
 
-        telegram_text += f" – Ставка финансирования: {record.get('current_funding_rate')}% | 15 мин. назад: {record.get('funding_rate_change')}%"
 
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
