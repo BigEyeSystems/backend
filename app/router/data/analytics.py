@@ -152,13 +152,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
 
     if not ticker:
         return {"status": status.HTTP_404_NOT_FOUND, "message": "No such ticker!"}
-<<<<<<< HEAD
- 
-    time_gap = params.time_value * 60  
-=======
 
     time_gap = params.time_value * 60
->>>>>>> 3218db3f3393c7c06c699aff1aa79a73479670ef
 
     try:
         stock_data = await database.fetch(
