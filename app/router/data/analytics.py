@@ -151,16 +151,20 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
 
     if not ticker:
         return {"status": status.HTTP_404_NOT_FOUND, "message": "No such ticker!"}
+<<<<<<< HEAD
+ 
+    time_gap = params.time_value * 60  
+=======
 
-    time_gap = 60 if params.time_value <= 3 else 1440
-    limit_number = 24 * params.time_value if params.time_value <= 3 else params.time_value
+    time_gap = params.time_value * 60
+>>>>>>> 3218db3f3393c7c06c699aff1aa79a73479670ef
 
     try:
         stock_data = await database.fetch(
             """
             WITH FilteredData AS (
                 SELECT
-                    *,
+                    * ,
                     ROW_NUMBER() OVER (ORDER BY close_time) AS rn
                 FROM
                     data_history.volume_data
@@ -176,8 +180,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             ORDER BY
                 close_time DESC
             LIMIT
-                $3;
-            """, ticker.get('stock_id'), time_gap, limit_number
+                24;  
+            """, ticker.get('stock_id'), time_gap
         )
     except Exception as e:
         return {"status": status.HTTP_409_CONFLICT, "message": "Error occurred while processing the data from database!"}
