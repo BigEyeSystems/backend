@@ -6,6 +6,8 @@ import pickle
 from dotenv import load_dotenv
 
 from database import database, redis_database
+from i18n import I18N
+i18n = I18N()
 
 
 load_dotenv()
@@ -60,7 +62,7 @@ def last_impulse_notification():
             if temp_data and (min_diff or max_diff):
                 telegram_id = database.execute_with_return(
                     """
-                        SELECT telegram_id
+                        SELECT telegram_id, language_code
                         FROM users."user"
                         WHERE user_id = %s;
                     """, (user[0], )
@@ -68,6 +70,7 @@ def last_impulse_notification():
 
                 active_name = (data_active.split(":"))[-1]
                 telegram_id = telegram_id[0][0]
+                language_code = str(telegram_id[0][1])
 
                 is_it_sent = database.execute_with_return(
                     """
@@ -101,12 +104,12 @@ def last_impulse_notification():
                 else:
                     time_text = "(за последние 60 мин)"
 
+
                 if percent > 0:
-                    text_for_notification = "\n".join(["🔔❗️Обратите внимание❗️🔔",
-                                            f"Торговая пара {active_name} дала импульс цены в {percent}% {time_text} 🟢📈"])
+                    text_for_notification = i18n.get_string("bot.impulse_positive", language_code).format(active_name=active_name, percent=percent, time_text=time_text)
                 else:
-                    text_for_notification = "\n".join(["🔔❗️Обратите внимание❗️🔔",
-                                            f"Торговая пара {active_name} дала импульс цены в {percent}% {time_text} 🔴📉"])
+                    text_for_notification = i18n.get_string("bot.impulse_negative", language_code).format(active_name=active_name, percent=percent, time_text=time_text)
+
 
                 payload = {
                     "chat_id": telegram_id,
@@ -155,31 +158,45 @@ def ticker_tracking_notification(notify_list: dict):
 
     for ticker_name, record in notify_list.items():
         telegram_ids = record.get("telegram_id")
-
-        telegram_text = f"🔔Торговая пара: {ticker_name}🔔\n"
-
-        if record.get('price_change', 0) > 0:
-            telegram_text += f"– Текущая цена: {record.get('current_price')}$ ({record.get('price_change')}% за 15 мин.)🟢\n"
-        else:
-            telegram_text += f"– Текущая цена: {record.get('current_price')}$ ({record.get('price_change')}% за 15 мин.)🔴\n"
-
-        if record.get('volume_change', 0) > 0:
-            telegram_text += f"– Текущий объём торгов: {record.get('current_volume')}$ ({record.get('volume_change')}% за 15 мин.)🟢\n"
-        else:
-            telegram_text += f"– Текущий объём торгов: {record.get('current_volume')}$ ({record.get('volume_change')}% за 15 мин.)🔴\n"
-
-        telegram_text += f"– Актив входит в ТОП {record.get('top_place')} по суточной процентности🔝\n"
-
-        telegram_text += f" – Ставка финансирования: {record.get('current_funding_rate')}% | 15 мин. назад: {record.get('funding_rate_change')}%"
-
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": None,
-            "text": telegram_text
+        telegram_text_language = {
+            'ru': "",
+            'en': ""
         }
 
+        for language_code in ['en', 'ru']:
+
+            telegram_text = i18n.get_string("bot.trading_pair_header", language_code).format(ticker_name=ticker_name)
+
+            if record.get('price_change', 0) > 0:
+                telegram_text += i18n.get_string("bot.price_up", language_code).format(current_price=record.get('current_price'), price_change=record.get('price_change'))
+            else:
+                telegram_text += i18n.get_string("bot.price_down", language_code).format(current_price=record.get('current_price'), price_change=record.get('price_change'))
+
+            if record.get('volume_change', 0) > 0:
+                telegram_text += i18n.get_string("bot.volume_up", language_code).format(current_volume=record.get('current_volume'), volume_change=record.get('volume_change'))
+            else:
+                telegram_text += i18n.get_string("bot.volume_down", language_code).format(current_volume=record.get('current_volume'), volume_change=record.get('volume_change'))
+
+            telegram_text += i18n.get_string("bot.top_place", language_code).format(top_place=record.get('top_place'))
+            telegram_text += i18n.get_string("bot.funding_rate", language_code).format(current_funding_rate=record.get('current_funding_rate'), funding_rate_change=record.get('funding_rate_change'))
+
+            telegram_text_language[language_code] = telegram_text
+
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
         for telegram_id in telegram_ids:
-            payload["chat_id"] = telegram_id
+            language_code = database.execute_with_return(
+                """
+                    SELECT language_code
+                    FROM users."user"
+                    WHERE telegram_id = %s;
+                """, (telegram_id,)
+            )
+
+            payload = {
+                "chat_id": telegram_id,
+                "text": telegram_text_language[language_code]
+            }
 
             response = requests.post(url, json=payload)
 
