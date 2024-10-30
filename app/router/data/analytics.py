@@ -140,7 +140,7 @@ async def ticker_information(ticker: str = Query(max_length=50)):
 
 
 @router.post("/volume_24hr")
-async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, default="generate")):
+async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, default="generate"), token_data: Dict = Depends(JWTBearer())):
     print(f"In volume_24hr function, json params is: {params}")
     ticker = await database.fetchrow(
         """
@@ -199,14 +199,14 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
                 "last_update": datetime.now().date(), "difference_percent":difference_percent}
 
     if action == "send":
-        user_id = 1  # token_data.get("user_id")
+        user_id = token_data.get("user_id")
         current_date = datetime.now().date()
         current_time = datetime.now().time().replace(microsecond=0)
 
         directory_path = f"dataframes/{user_id}/{current_date}/{current_time}"
         os.makedirs(directory_path, exist_ok=True)
         csv_file_path = directory_path + f"/{params.time_value}d_volume.csv"
-
+    
         last_value = None
         row_index = 0
 
@@ -215,11 +215,11 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             writer.writerow(["index", "date", "daily_volume", "volume_change_percent"])
 
             for data in stock_data[-1:1:-1]:
-                date = data['close_time'].strftime("%d-%m-%Y | %H:%M")
+                date = data['close_time'].strftime("%d-%m-%Y")
                 change_percent = None
 
                 if last_value:
-                    change_percent = round((last_value - data['volume']) / data['volume'] * 100, 1)
+                    change_percent = f"{round((last_value - data['volume']) / data['volume'] * 100, 1)}%"
 
                 last_value = data['volume']
 
