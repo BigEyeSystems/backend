@@ -1,5 +1,5 @@
 import csv
-import pika
+# import pika
 import os
 from datetime import datetime
 from typing import Dict
@@ -140,7 +140,7 @@ async def ticker_information(ticker: str = Query(max_length=50)):
 
 
 @router.post("/volume_24hr")
-async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, default="generate"), token_data: Dict = Depends(JWTBearer())):
+async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, default="generate")):
     print(f"In volume_24hr function, json params is: {params}")
     ticker = await database.fetchrow(
         """
@@ -153,7 +153,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
     if not ticker:
         return {"status": status.HTTP_404_NOT_FOUND, "message": "No such ticker!"}
 
-    time_gap = params.time_value * 60
+
+    time_gap = params.time_value * 60 if params.time_value != 1 else 60  
 
     try:
         stock_data = await database.fetch(
@@ -198,7 +199,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
                 "last_update": datetime.now().date(), "difference_percent":difference_percent}
 
     if action == "send":
-        user_id = token_data.get("user_id")
+        user_id = 1  # token_data.get("user_id")
         current_date = datetime.now().date()
         current_time = datetime.now().time().replace(microsecond=0)
 
@@ -232,8 +233,6 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             RETURNING file_id;
             """, user_id, current_date, "24hr_volume", csv_file_path
         )
-
-
 
         return {"Status": "ok", "file_id": file_id}
 
