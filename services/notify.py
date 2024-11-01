@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 from telegram import Bot
 from dotenv import load_dotenv
@@ -14,9 +15,9 @@ class WebhookService:
     def __init__(self):
         # Mapping string names to method references
         self.commands = {
-            "send_webhook": self.get_funding_data_file,
-            "process_data": self.get_24hr_volume,
-            "handle_error": self.download_growth
+            "get_funding_data_file": self.get_funding_data_file,
+            "get_24hr_volume": self.get_24hr_volume,
+            "download_growth": self.download_growth
         }
 
         self.bot = Bot(TELEGRAM_BOT_TOKEN)
@@ -47,40 +48,40 @@ class WebhookService:
         return {"Status": "ok"}
 
 
-    async def download_growth(self, file_id: int, user_id: int, telegram_id: int):
-        if not file_id:
-            return {"Provide file id!"}
+    async def download_growth(self, csv_file_path: str, telegram_id: str, *args, **kwargs):
+        if not csv_file_path:
+            return "no_file_path"
 
-        file_params = database.execute_with_return(
-            """
-            SELECT *
-            FROM data_history.growth_data_history
-            WHERE file_id = $1 AND user_id = $2;
-            """, file_id, user_id
-        )
-
-        date_param = file_params.get("date")
-        time_param = file_params.get("time")
-        file_name = file_params.get("file_name")
-
-        csv_file_path = f"dataframes/{user_id}/{date_param}/{time_param}/{file_name}"
-
-        with open(csv_file_path, 'rb') as file:
-            await self.bot.send_document(chat_id=telegram_id, document=file, filename="growth_data.csv")
+        try:
+            with open(csv_file_path, 'rb') as file:
+                await self.bot.send_document(chat_id=telegram_id, document=file, filename="growth_data.csv")
+        except FileNotFoundError:
+            return "no_file"
 
         return {"Status": "ok"}
 
 
-    def execute_command(self, command_name, *args, **kwargs):
+    async def execute_command(self, command_name, *args, **kwargs):
         if command_name in self.commands:
-            return self.commands[command_name](*args, **kwargs)
+            command = self.commands[command_name]
+            if asyncio.iscoroutinefunction(command):
+                print(f"Executing async command: {command_name}")
+                result = await command(*args, **kwargs)
+                print(f"Async command {command_name} completed with result: {result}")
+                return result
+            else:
+                print(f"Executing sync command: {command_name}")
+                result = command(*args, **kwargs)
+                print(f"Sync command {command_name} completed with result: {result}")
+                return result
         else:
             raise ValueError(f"Command '{command_name}' not found")
 
 
 service = WebhookService()
 
+
 # Dynamically call functions by name
-# service.execute_command("send_webhook", "https://example.com", {"key": "value"})
+# asyncio.run(service.execute_command("download_growth", "asdfasdf", 'asdfasdf'))
 # service.execute_command("process_data", {"name": "test", "value": 42})
 # service.execute_command("handle_error", 404, "Page not found")
