@@ -63,6 +63,10 @@ async def file_generation(funding_data, time_gap, csv_file_path):
                     writer = csv.writer(file)
                     writer.writerow([record['symbol'], data['funding_time'], float(data['funding_rate']) * 100, data['mark_price']])
 
+
+
+
+
 @router.get("/funding_data", tags=["data"])
 async def get_funding_data(background_tasks: BackgroundTasks, interval: int = Query(7), token_data: Dict = Depends(JWTBearer())):
     funding_response = requests.get("https://fapi.binance.com/fapi/v1/premiumIndex")

@@ -4,7 +4,6 @@ import json
 
 from dotenv import load_dotenv
 
-from i18n import i18n
 
 load_dotenv()
 

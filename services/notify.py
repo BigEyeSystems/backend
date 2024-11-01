@@ -3,9 +3,9 @@ import os
 from telegram import Bot
 from dotenv import load_dotenv
 
-from i18n import i18n
 from database import database
 
+load_dotenv()
 
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
