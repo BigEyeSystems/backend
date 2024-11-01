@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query, Background
 
 from app.database import database
 from app.auth_bearer import JWTBearer
+from app.messages import send_message_to_rabbitmq
 
 
 load_dotenv()
@@ -26,51 +27,57 @@ def calculate_percentage_change(value_1, value_2):
 
 async def file_generation(volume_data, interval, growth_type, csv_file_path):
     for record in volume_data:
-        print(f"The value from record: {record}")
-        stock_id = await database.fetchrow(
-            """
-            SELECT stock_id
-            FROM data_history.funding
-            WHERE symbol = $1;
-            """, record["symbol"]
-        )
-
-        stock_id = stock_id.get("stock_id")
-
-        stock_data = await database.fetch(
-            """
-            WITH FilteredData AS (
-                SELECT
-                    *,
-                    ROW_NUMBER() OVER (ORDER BY open_time) AS rn
-                FROM
-                    data_history.volume_data
-                WHERE
-                    stock_id = $1
+        print("In file generation:" , record)
+        try:
+            stock_id = await database.fetchrow(
+                """
+                SELECT stock_id
+                FROM data_history.funding
+                WHERE symbol = $1;
+                """, record["symbol"]
             )
-            SELECT
-                *
-            FROM
-                FilteredData
-            WHERE
-                rn % $2 = 0  
-            ORDER BY
-                open_time
-            LIMIT 1;
-            """, stock_id, interval
-        )
 
-        stock_data = stock_data[0]
+            stock_id = stock_id.get("stock_id")
 
-        if growth_type == "Volume":
-            local_percent = calculate_percentage_change(float(record["quoteVolume"]), float(stock_data["quote_volume"]))
-        else:
-            local_percent = calculate_percentage_change(float(record["lastPrice"]), float(stock_data["last_price"]))
+            stock_data = await database.fetch(
+                """
+                WITH FilteredData AS (
+                    SELECT
+                        *,
+                        ROW_NUMBER() OVER (ORDER BY open_time) AS rn
+                    FROM
+                        data_history.volume_data
+                    WHERE
+                        stock_id = $1
+                )
+                SELECT
+                    *
+                FROM
+                    FilteredData
+                WHERE
+                    rn % $2 = 0
+                ORDER BY
+                    open_time
+                LIMIT 1;
+                """, stock_id, interval
+            )
 
-        with open(csv_file_path, mode='a', newline='') as file:
-            writer = csv.writer(file)
+            stock_data = stock_data[0]
 
-            writer.writerow([record["symbol"], local_percent])
+            if growth_type == "Volume":
+                local_percent = calculate_percentage_change(float(record["quoteVolume"]), float(stock_data["quote_volume"]))
+            else:
+                local_percent = calculate_percentage_change(float(record["lastPrice"]), float(stock_data["last_price"]))
+
+            with open(csv_file_path, mode='a', newline='') as file:
+                writer = csv.writer(file)
+
+                writer.writerow([record["symbol"], local_percent])
+
+        except Exception as e:
+            print("Error with text: ", e)
+
+    send_message_to_rabbitmq(f"gradation:{interval}:{growth_type}:{csv_file_path}", "generate_file")
 
 
 @router.get("/gradation_growth", tags=["data"])
