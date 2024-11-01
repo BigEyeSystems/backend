@@ -11,7 +11,8 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from app.database import database
 from app.auth_bearer import JWTBearer
 from .schemas import VolumeData
-from app.webhook import bot
+from app.messages import send_message_to_rabbitmq
+
 
 
 load_dotenv()
@@ -232,6 +233,17 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             VALUES ($1, $2, $3, $4)
             RETURNING file_id;
             """, user_id, current_date, "24hr_volume", csv_file_path
+        )
+
+        send_message_to_rabbitmq(
+            {
+                "type": "get_24hr_volume",
+                "interval": interval,
+                "growth_type": growth_type,
+                "csv_file_path": "../" + csv_file_path,
+                "telegram_id": telegram_id
+            },
+            "generate_file"
         )
 
         return {"Status": "ok", "file_id": file_id}

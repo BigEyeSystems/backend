@@ -90,11 +90,15 @@ async def file_generation(volume_data, interval, growth_type, csv_file_path, tel
 
 
 @router.get("/gradation_growth", tags=["data"])
-async def get_gradation(background_tasks: BackgroundTasks, interval: int = Query(30), growth_type: str = Query("Volume", max_length=50)):
+async def get_gradation(background_tasks: BackgroundTasks,
+                        interval: int = Query(30),
+                        growth_type: str = Query("Volume", max_length=50),
+                        token_data: Dict = Depends(JWTBearer())
+                        ):
     volume_response = requests.get('https://fapi.binance.com/fapi/v1/ticker/24hr')
     if volume_response.status_code == 200:
         volume_data = volume_response.json()
-        user_id = 1 #token_data.get("user_id")
+        user_id = token_data.get("user_id")
         current_date = datetime.now().date()
         current_time = datetime.now().time().replace(microsecond=0)
 
@@ -119,7 +123,7 @@ async def get_gradation(background_tasks: BackgroundTasks, interval: int = Query
             """, user_id, current_date, current_time, file_name, "volume" if growth_type == "Volume" else "price"
         )
 
-        background_tasks.add_task(file_generation, volume_data, interval, growth_type, csv_file_path, "972366203") #token_data.get("telegram_id"))
+        background_tasks.add_task(file_generation, volume_data, interval, growth_type, csv_file_path, token_data.get("telegram_id"))
 
         return {"status": status.HTTP_200_OK, "file_name": f"volume_growth_{interval}.csv", "file_id": file_id[0][0]}
 

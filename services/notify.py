@@ -23,15 +23,19 @@ class WebhookService:
         self.bot = Bot(TELEGRAM_BOT_TOKEN)
 
 
-    async def get_funding_data_file(self, user_id: int, telegram_id: int):
+    async def get_funding_data_file(self, user_id: int, telegram_id: int, *args, **kwargs):
         csv_file_path = f"dataframes/funding_data_{user_id}.csv"
-        with open(csv_file_path, 'rb') as file:
-            await self.bot.send_document(chat_id=telegram_id, document=file, filename="funding_data.csv")
+
+        try:
+            with open(csv_file_path, 'rb') as file:
+                await self.bot.send_document(chat_id=telegram_id, document=file, filename="funding_data.csv")
+        except FileNotFoundError:
+            return "no_file"
 
         return {"Status": "ok"}
 
 
-    async def get_24hr_volume(self, file_id: int, telegram_id: int):
+    async def get_24hr_volume(self, file_id: int, telegram_id: int, *args, **kwargs):
         file_path = database.execute_with_return(
             """
             SELECT directory
