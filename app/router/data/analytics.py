@@ -1,5 +1,5 @@
 import csv
-import pika
+# import pika
 import os
 from datetime import datetime
 from typing import Dict
@@ -153,7 +153,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
     if not ticker:
         return {"status": status.HTTP_404_NOT_FOUND, "message": "No such ticker!"}
 
-    time_gap = params.time_value * 60
+
+    time_gap = params.time_value * 60 if params.time_value != 1 else 60  
 
     try:
         stock_data = await database.fetch(
@@ -205,7 +206,7 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
         directory_path = f"dataframes/{user_id}/{current_date}/{current_time}"
         os.makedirs(directory_path, exist_ok=True)
         csv_file_path = directory_path + f"/{params.time_value}d_volume.csv"
-
+    
         last_value = None
         row_index = 0
 
@@ -214,11 +215,11 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             writer.writerow(["index", "date", "daily_volume", "volume_change_percent"])
 
             for data in stock_data[-1:1:-1]:
-                date = data['close_time'].strftime("%d-%m-%Y | %H:%M")
+                date = data['close_time'].strftime("%d-%m-%Y")
                 change_percent = None
 
                 if last_value:
-                    change_percent = round((last_value - data['volume']) / data['volume'] * 100, 1)
+                    change_percent = f"{round((last_value - data['volume']) / data['volume'] * 100, 1)}%"
 
                 last_value = data['volume']
 
