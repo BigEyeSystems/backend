@@ -33,6 +33,13 @@ logger.addHandler(handler)
 except_list = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "BTCDOMUSDT"]
 
 
+logging.basicConfig(filename='volume_data.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+logging.basicConfig(filename='funding_data_log.log', level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+
 def format_number(number):
     integer_part, fractional_part = str(number).split('.')
     formatted_integer = '{:,}'.format(int(integer_part))
@@ -109,9 +116,13 @@ def volume_data_db_push(record):
 
 
 def get_volume_data():
+    request_time = datetime.now()
+    logging.info(f"Запрос к Binance API 24hr начат в {request_time}")
+
     main_data = requests.get('https://fapi.binance.com/fapi/v1/ticker/24hr')
 
     if main_data.status_code == 200:
+        logging.info(f"Успешный запрос к Binance API 24hr с кодом состояния: {main_data.status_code}")
         database.connect()
 
         main_data = main_data.json()
@@ -183,10 +194,14 @@ def get_volume_data():
 
             json_data = json.dumps(redis_data)
             redis_database.set('funding:top:5:tickets:volume', json_data)
+            logging.info("Data has been successfully written to Redis.")
+
         except Exception as e:
             logging.error(f"Error arose while trying to insert top tickets by volume into Reddis, error message:{e}")
 
         database.disconnect()
+
+        logging.info(f"Final data for Redis: {redis_data}")
 
         try:
             with multiprocessing.Pool(processes=8) as pool:
@@ -222,8 +237,12 @@ def get_symbols():
 
 
 def get_funding_data():
+    request_time = datetime.now()
+    logging.info(f"Запрос к Binance API для funding начат в {request_time}")
+
     funding_response = requests.get("https://fapi.binance.com/fapi/v1/premiumIndex")
     if funding_response.status_code == 200:
+        logging.info(f"Успешный запрос к Binance API для funding с кодом состояния: {funding_response.status_code}")
         database.connect()
 
         funding_data = funding_response.json() if funding_response.status_code == 200 else None
@@ -312,6 +331,8 @@ def get_funding_data():
             json_data = json.dumps(redis_data)
 
             redis_database.set('funding:top:5:tickets', json_data)
+            logging.info("Данные успешно записаны в Redis.")
+
         except Exception as e:
             logging.error(f"Error arose while trying to insert top tickets into Reddis, error message:{e}")
 
