@@ -25,7 +25,7 @@ def calculate_percentage_change(value_1, value_2):
     return round(value_1 * 100, 2)
 
 
-async def file_generation(volume_data, interval, growth_type, csv_file_path):
+async def file_generation(volume_data, interval, growth_type, csv_file_path, telegram_id):
     for record in volume_data:
         print("In file generation:" , record)
         try:
@@ -77,7 +77,16 @@ async def file_generation(volume_data, interval, growth_type, csv_file_path):
         except Exception as e:
             print("Error with text: ", e)
 
-    send_message_to_rabbitmq(f"gradation:{interval}:{growth_type}:{csv_file_path}", "generate_file")
+    send_message_to_rabbitmq(
+        {
+            "type": "download_growth",
+            "interval": interval,
+            "growth_type": growth_type,
+            "csv_file_path": "../"+csv_file_path,
+            "telegram_id": telegram_id
+        },
+        "generate_file"
+    )
 
 
 @router.get("/gradation_growth", tags=["data"])
@@ -110,7 +119,7 @@ async def get_gradation(background_tasks: BackgroundTasks, interval: int = Query
             """, user_id, current_date, current_time, file_name, "volume" if growth_type == "Volume" else "price"
         )
 
-        background_tasks.add_task(file_generation, volume_data, interval, growth_type, csv_file_path)
+        background_tasks.add_task(file_generation, volume_data, interval, growth_type, csv_file_path, "972366203") #token_data.get("telegram_id"))
 
         return {"status": status.HTTP_200_OK, "file_name": f"volume_growth_{interval}.csv", "file_id": file_id[0][0]}
 

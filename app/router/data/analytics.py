@@ -233,8 +233,6 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
             """, user_id, current_date, "24hr_volume", csv_file_path
         )
 
-
-
         return {"Status": "ok", "file_id": file_id}
 
     return {}
