@@ -83,7 +83,7 @@ async def file_generation(volume_data, interval, growth_type, csv_file_path, tel
             "interval": interval,
             "growth_type": growth_type,
             "csv_file_path": "../"+csv_file_path,
-            "telegram_id": telegram_id
+            "telegram_id": int(telegram_id)
         },
         "generate_file"
     )

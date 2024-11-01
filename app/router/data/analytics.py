@@ -238,10 +238,8 @@ async def volume_24hr(params: VolumeData, action: str = Query(max_length=20, def
         send_message_to_rabbitmq(
             {
                 "type": "get_24hr_volume",
-                "interval": interval,
-                "growth_type": growth_type,
                 "csv_file_path": "../" + csv_file_path,
-                "telegram_id": telegram_id
+                "telegram_id": int(token_data.get("telegram_id"))
             },
             "generate_file"
         )

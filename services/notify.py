@@ -24,7 +24,7 @@ class WebhookService:
 
 
     async def get_funding_data_file(self, user_id: int, telegram_id: int, *args, **kwargs):
-        csv_file_path = f"dataframes/funding_data_{user_id}.csv"
+        csv_file_path = f"../dataframes/funding_data_{user_id}.csv"
 
         try:
             with open(csv_file_path, 'rb') as file:
@@ -35,16 +35,7 @@ class WebhookService:
         return {"Status": "ok"}
 
 
-    async def get_24hr_volume(self, file_id: int, telegram_id: int, *args, **kwargs):
-        file_path = database.execute_with_return(
-            """
-            SELECT directory
-            FROM data_history.volume_data_history
-            WHERE file_id = $1 
-            """, file_id
-        )[0][0]
-
-        csv_file_path = file_path.get("directory")
+    async def get_24hr_volume(self, csv_file_path: str, telegram_id: int, *args, **kwargs):
         file_name = csv_file_path.split("/")[-1]
         with open(csv_file_path, 'rb') as file:
             await self.bot.send_document(chat_id=telegram_id, document=file, filename=file_name)
@@ -52,7 +43,7 @@ class WebhookService:
         return {"Status": "ok"}
 
 
-    async def download_growth(self, csv_file_path: str, telegram_id: str, *args, **kwargs):
+    async def download_growth(self, csv_file_path: str, telegram_id: int, *args, **kwargs):
         if not csv_file_path:
             return "no_file_path"
 

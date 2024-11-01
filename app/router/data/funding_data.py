@@ -67,8 +67,8 @@ async def file_generation(funding_data, time_gap, csv_file_path, user_id, telegr
     send_message_to_rabbitmq(
         {
             "type": "get_funding_data_file",
-            "user_id": user_id,
-            "telegram_id": telegram_id
+            "user_id": int(user_id),
+            "telegram_id": int(telegram_id)
         },
         "generate_file"
     )
